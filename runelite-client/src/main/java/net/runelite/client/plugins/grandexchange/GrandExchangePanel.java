@@ -38,15 +38,19 @@ import net.runelite.api.Client;
 import net.runelite.api.GrandExchangeOffer;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.PluginPanel;
 
 @Slf4j
 class GrandExchangePanel extends PluginPanel
 {
-	private static final int MAX_OFFERS = 8;
+	static final int MAX_OFFERS = 8;
 
 	@Getter
 	private GrandExchangeSearchPanel searchPanel;
+
+	@Getter
+	private GrandExchangeHistoryPanel historyPanel;
 
 	private GrandExchangeOfferSlot[] offerSlotPanels = new GrandExchangeOfferSlot[MAX_OFFERS];
 
@@ -55,7 +59,7 @@ class GrandExchangePanel extends PluginPanel
 	private JTabbedPane tabbedPane = new JTabbedPane();
 
 	@Inject
-	GrandExchangePanel(Client client, ItemManager itemManager, ScheduledExecutorService executor)
+	GrandExchangePanel(Client client, ItemManager itemManager, SpriteManager spriteManager, ScheduledExecutorService executor)
 	{
 		setLayout(new BorderLayout());
 		add(tabbedPane, BorderLayout.NORTH);
@@ -71,13 +75,18 @@ class GrandExchangePanel extends PluginPanel
 		// Search Panel
 		searchPanel = new GrandExchangeSearchPanel(client, itemManager, executor);
 
+		// History Panel
+		historyPanel = new GrandExchangeHistoryPanel(spriteManager);
+
 		tabbedPane.addTab("Offers", offerPanel);
 		tabbedPane.addTab("Search", searchPanel);
+		tabbedPane.addTab("History", historyPanel);
 	}
 
 	void updateOffer(ItemComposition item, BufferedImage itemImage, GrandExchangeOffer newOffer, int slot)
 	{
 		offerSlotPanels[slot].updateOffer(item, itemImage, newOffer);
+		historyPanel.updateHistory(item, itemImage, newOffer, slot);
 	}
 
 	void showSearch()

@@ -37,6 +37,7 @@ import javax.swing.SwingUtilities;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.GrandExchangeOffer;
@@ -60,6 +61,7 @@ import net.runelite.client.ui.PluginToolbar;
 @PluginDescriptor(
 	name = "Grand Exchange"
 )
+@Slf4j
 public class GrandExchangePlugin extends Plugin
 {
 	@Getter(AccessLevel.PACKAGE)
@@ -161,7 +163,10 @@ public class GrandExchangePlugin extends Plugin
 		ItemComposition offerItem = itemManager.getItemComposition(offer.getItemId());
 		boolean shouldStack = offerItem.isStackable() || offer.getTotalQuantity() > 1;
 		BufferedImage itemImage = itemManager.getImage(offer.getItemId(), offer.getTotalQuantity(), shouldStack);
-		SwingUtilities.invokeLater(() -> panel.updateOffer(offerItem, itemImage, offerEvent.getOffer(), offerEvent.getSlot()));
+		SwingUtilities.invokeLater(() ->
+		{
+			panel.updateOffer(offerItem, itemImage, offerEvent.getOffer(), offerEvent.getSlot());
+		});
 	}
 
 	@Subscribe
