@@ -26,6 +26,9 @@ package net.runelite.api;
 
 public class GraphicID
 {
+	public static final int TELEPORT_SPELL = 111;
+	public static final int LOW_ALCHEMY = 112;
+	public static final int HIGH_ALCHEMY = 113;
 	public static final int ENTANGLE = 179;
 	public static final int SNARE = 180;
 	public static final int BIND = 181;
@@ -33,6 +36,8 @@ public class GraphicID
 	public static final int ICE_BURST = 363;
 	public static final int ICE_BLITZ = 367;
 	public static final int ICE_BARRAGE = 369;
+	public static final int USE_FAIRY_RING = 569;
+	public static final int TELEPORT_TAB = 678;
 	public static final int VENGEANCE = 726;
 	public static final int IMBUED_HEART = 1316;
 	public static final int FLYING_FISH = 1387;

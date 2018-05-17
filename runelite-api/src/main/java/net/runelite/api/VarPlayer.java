@@ -27,6 +27,9 @@ package net.runelite.api;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * An enumeration of local player variables.
+ */
 @AllArgsConstructor
 @Getter
 public enum VarPlayer

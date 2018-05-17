@@ -24,6 +24,11 @@
  */
 package net.runelite.api.kit;
 
+import net.runelite.api.PlayerComposition;
+
+/**
+ * Represents an equipment slot in a players composition.
+ */
 public enum KitType
 {
 	CAPE(1),
@@ -37,15 +42,21 @@ public enum KitType
 	BOOTS(10),
 	JAW(11);
 
-	/** index into player composition equipment ids
+	/**
+	 * Raw equipment index.
 	 */
 	private final int index;
 
-	private KitType(int index)
+	KitType(int index)
 	{
 		this.index = index;
 	}
 
+	/**
+	 * Gets the raw equipment index for use in {@link PlayerComposition#getEquipmentIds()}.
+	 *
+	 * @return raw equipment index
+	 */
 	public int getIndex()
 	{
 		return index;

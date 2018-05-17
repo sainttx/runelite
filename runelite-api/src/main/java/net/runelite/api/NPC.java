@@ -24,8 +24,17 @@
  */
 package net.runelite.api;
 
+/**
+ * Represents a non-player character in the game.
+ */
 public interface NPC extends Actor
 {
+	/**
+	 * Gets the ID of the NPC.
+	 *
+	 * @return the ID of the NPC
+	 * @see NpcID
+	 */
 	int getId();
 
 	@Override
@@ -34,7 +43,19 @@ public interface NPC extends Actor
 	@Override
 	int getCombatLevel();
 
+	/**
+	 * Gets the index position of this NPC in the clients cached
+	 * NPC array.
+	 *
+	 * @return the NPC index
+	 * @see Client#getCachedNPCs()
+	 */
 	int getIndex();
 
+	/**
+	 * Gets the composition of this NPC.
+	 *
+	 * @return the composition
+	 */
 	NPCComposition getComposition();
 }
