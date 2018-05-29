@@ -25,33 +25,40 @@
  */
 package net.runelite.client.plugins.grandexchange;
 
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.image.BufferedImage;
-import java.util.concurrent.ScheduledExecutorService;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
 import net.runelite.api.GrandExchangeOffer;
 import net.runelite.api.GrandExchangeOfferState;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.SpriteID;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.components.PluginErrorPanel;
 
-public class GrandExchangeOffersPanel extends JPanel
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+
+public class GrandExchangeHistoryPanel extends JPanel
 {
 	private static final String ERROR_PANEL = "ERROR_PANEL";
-	private static final String OFFERS_PANEL = "OFFERS_PANEL";
+	private static final String OFFERS_PANEL = "HISTORY_PANEL";
 
 	private final GridBagConstraints constraints = new GridBagConstraints();
 	private final CardLayout cardLayout = new CardLayout();
 
 	/*  The offers container, this will hold all the individual ge offers panels */
-	private final JPanel offerPanel = new JPanel();
+	private final JPanel historyPanel = new JPanel();
 
 	/*  The error panel, this displays an error message */
 	private final PluginErrorPanel errorPanel = new PluginErrorPanel();
@@ -63,9 +70,13 @@ public class GrandExchangeOffersPanel extends JPanel
 	private final ItemManager itemManager;
 	private final ScheduledExecutorService executor;
 
-	private GrandExchangeOfferSlot[] offerSlotPanels = new GrandExchangeOfferSlot[Constants.MAX_GRAND_EXCHANGE_OFFERS];
+	// TODO: If we want pages, this should be sorted set by date of non-swing components (just information
+	// about the history item), and then have a method to draw current page of offers
+	private final List<GrandExchangeHistoryEntry> historyEntries = new ArrayList<>();
 
-	public GrandExchangeOffersPanel(Client client, ItemManager itemManager, ScheduledExecutorService executor)
+	private final GrandExchangeOfferSnapshot[] previousState = new GrandExchangeOfferSnapshot[Constants.MAX_GRAND_EXCHANGE_OFFERS];
+
+	public GrandExchangeHistoryPanel(Client client, ItemManager itemManager, ScheduledExecutorService executor)
 	{
 		this.client = client;
 		this.itemManager = itemManager;
@@ -86,11 +97,11 @@ public class GrandExchangeOffersPanel extends JPanel
 		/* This panel wraps the offers panel and limits its height */
 		JPanel offersWrapper = new JPanel(new BorderLayout());
 		offersWrapper.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		offersWrapper.add(offerPanel, BorderLayout.NORTH);
+		offersWrapper.add(historyPanel, BorderLayout.NORTH);
 
-		offerPanel.setLayout(new GridBagLayout());
-		offerPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-		offerPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		historyPanel.setLayout(new GridBagLayout());
+		historyPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+		historyPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
 		/* This panel wraps the error panel and limits its height */
 		JPanel errorWrapper = new JPanel(new BorderLayout());
@@ -98,24 +109,90 @@ public class GrandExchangeOffersPanel extends JPanel
 		errorWrapper.add(errorPanel, BorderLayout.NORTH);
 
 		errorPanel.setBorder(new EmptyBorder(50, 20, 20, 20));
-		errorPanel.setContent("No offers detected", "No grand exchange offers were found on your account.");
+		// TODO: Log into RuneLite error message
+		errorPanel.setContent("No history available", "No grand exchange offers were found on your account.");
 
 		container.add(offersWrapper, OFFERS_PANEL);
 		container.add(errorWrapper, ERROR_PANEL);
 
 		add(container, BorderLayout.CENTER);
 
-		resetOffers();
+		resetHistory();
 	}
 
-	void resetOffers()
+	void resetHistory()
 	{
-		offerPanel.removeAll();
-		for (int i = 0; i < offerSlotPanels.length; i++)
+		historyPanel.removeAll();
+		historyEntries.clear();
+		updateEmptyHistoryPanel();
+	}
+
+	void updateHistory(ItemComposition entryItem, BufferedImage itemIcon, GrandExchangeOffer offer, int slot)
+	{
+		switch (offer.getState())
 		{
-			offerSlotPanels[i] = null;
+			case EMPTY:
+				if (previousState[slot] != null)
+				{
+					GrandExchangeOfferSnapshot snapshot = previousState[slot];
+
+					SwingUtilities.invokeLater(() ->
+					{
+						/*BufferedImage offerTypeIcon = spriteManager.getSprite(getOfferTypeSprite(snapshot.getState()), 0);
+						GrandExchangeHistoryEntry entry = new GrandExchangeHistoryEntry(offerTypeIcon, snapshot.getItemIcon(),
+								snapshot.getItem().getName(), snapshot.getQuantity(), snapshot.getPrice());
+						// TODO: add to current page, remove last entry on page if first page
+						//historyItemsPanel.add(entry, 0);
+						*/
+					});
+
+					// Clear current offer - claimed and put into history
+					previousState[slot] = null;
+				}
+				break;
+
+			case CANCELLED_BUY:
+			case CANCELLED_SELL:
+			case BOUGHT:
+			case SOLD:
+				// Ignore offers that have been cancelled with nothing bought or sold
+				if (offer.getQuantitySold() > 0)
+				{
+					previousState[slot] = new GrandExchangeOfferSnapshot(entryItem, itemIcon, offer.getQuantitySold(),
+							offer.getPrice(), offer.getState());
+				}
+				break;
 		}
-		updateEmptyOffersPanel();
+	}
+
+	private int getOfferTypeSprite(GrandExchangeOfferState state)
+	{
+		switch (state)
+		{
+			case CANCELLED_BUY:
+			case BUYING:
+			case BOUGHT:
+				return SpriteID.GE_MAKE_OFFER_BUY;
+			case CANCELLED_SELL:
+			case SELLING:
+			case SOLD:
+				return SpriteID.GE_MAKE_OFFER_SELL;
+			default:
+				throw new IllegalArgumentException("GrandExchangeOfferState " + state + " has no associated sprite");
+		}
+	}
+
+	@Getter
+	@AllArgsConstructor
+	private class GrandExchangeOfferSnapshot
+	{
+
+		ItemComposition item;
+		BufferedImage itemIcon;
+		int quantity;
+		int price;
+		GrandExchangeOfferState state;
+
 	}
 
 	void updateOffer(ItemComposition item, BufferedImage itemImage, GrandExchangeOffer newOffer, int slot)
@@ -171,23 +248,13 @@ public class GrandExchangeOffersPanel extends JPanel
 	}
 
 	/**
-	 * This method calculates the amount of empty ge offer slots, if all slots are empty,
-	 * it shows the error panel.
+	 * If no history is available, this method shows the error panel
 	 */
-	private void updateEmptyOffersPanel()
+	private void updateEmptyHistoryPanel()
 	{
-		int nullCount = 0;
-		for (GrandExchangeOfferSlot slot : offerSlotPanels)
+		if (historyEntries.isEmpty())
 		{
-			if (slot == null)
-			{
-				nullCount++;
-			}
-		}
-
-		if (nullCount == Constants.MAX_GRAND_EXCHANGE_OFFERS)
-		{
-			offerPanel.removeAll();
+			historyPanel.removeAll();
 			cardLayout.show(container, ERROR_PANEL);
 		}
 		else

@@ -67,4 +67,8 @@ public class Constants
 	 * the plane value to 0-3.
 	 */
 	public static final int MAX_Z = 4;
+	/**
+	 * The maximum number of grand exchange offers.
+	 */
+	public static final int MAX_GRAND_EXCHANGE_OFFERS = 8;
 }
